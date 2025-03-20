@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    .color-picker {
+      margin: 10px 0;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button.active {
+      background-color: #f44336;
+    }
+    button.active:hover {
+      background-color: #da190b;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      display: none;
+    }
+    .status.active {
+      display: block;
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <h2>文字高亮工具</h2>
+  <div>
+    <label for="highlightColor">选择高亮颜色：</label>
+    <input type="color" id="highlightColor" class="color-picker" value="#ffeb3b">
+  </div>
+  <button id="toggleHighlight">开启高亮模式</button>
+  <button id="clear">清除所有高亮</button>
+  <div id="status" class="status">高亮模式已开启</div>
+  <script src="popup.js"></script>
+</body>
+</html> 
