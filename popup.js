@@ -19,10 +19,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // 发送消息到内容脚本的函数
-  async function sendMessageToContentScript(tabId, message) {
+  // 检查脚本是否已注入
+  async function ensureScriptsInjected(tabId) {
     try {
-      // 注入所需的CSS和JavaScript
+      // 尝试发送测试消息
+      await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+    } catch (error) {
+      // 如果消息发送失败，注入脚本
       await chrome.scripting.insertCSS({
         target: { tabId: tabId },
         files: ['content.css']
@@ -33,8 +36,16 @@ document.addEventListener('DOMContentLoaded', function() {
         files: ['content.js']
       });
       
-      // 等待一小段时间确保脚本加载
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // 等待脚本初始化
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  // 发送消息到内容脚本的函数
+  async function sendMessageToContentScript(tabId, message) {
+    try {
+      // 确保脚本已注入
+      await ensureScriptsInjected(tabId);
       
       // 发送消息
       await chrome.tabs.sendMessage(tabId, message);
@@ -49,6 +60,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
       if (!tab) {
         throw new Error('无法获取当前标签页');
+      }
+
+      // 检查标签页URL是否合法
+      if (!tab.url || !(tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+        throw new Error('此页面不支持高亮功能');
       }
 
       isHighlighting = !isHighlighting;
@@ -86,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
       isHighlighting = !isHighlighting;
       toggleBtn.textContent = isHighlighting ? '关闭高亮模式' : '开启高亮模式';
       toggleBtn.classList.toggle('active', isHighlighting);
-      status.textContent = '操作失败，请刷新页面重试';
+      status.textContent = error.message || '操作失败，请刷新页面重试';
       status.style.backgroundColor = '#ffebee';
       status.style.color = '#c62828';
       status.classList.add('active');
