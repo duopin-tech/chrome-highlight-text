@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "文字高亮工具",
   "description": "一个可以给网页文字添加颜色的工具",
-  "version": "1.0",
+  "version": "2.0",
   "permissions": [
     "storage",
     "scripting",

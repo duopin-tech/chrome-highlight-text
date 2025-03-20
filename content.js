@@ -230,6 +230,11 @@ function enableHighlighting() {
   document.addEventListener('mousemove', handleMouseMove, true);
   document.addEventListener('mouseup', handleMouseUp, true);
   document.body.classList.add('extension-active');
+  
+  // 添加复制事件支持
+  document.addEventListener('copy', handleCopy, true);
+  document.addEventListener('cut', handleCopy, true);
+  document.addEventListener('paste', handlePaste, true);
 }
 
 function disableHighlighting() {
@@ -238,13 +243,37 @@ function disableHighlighting() {
   document.removeEventListener('mousemove', handleMouseMove, true);
   document.removeEventListener('mouseup', handleMouseUp, true);
   document.body.classList.remove('extension-active');
+  
+  // 移除复制事件支持
+  document.removeEventListener('copy', handleCopy, true);
+  document.removeEventListener('cut', handleCopy, true);
+  document.removeEventListener('paste', handlePaste, true);
+}
+
+// 处理复制操作
+function handleCopy(e) {
+  // 如果正在拖动按钮，不处理复制
+  if (globals.isButtonDragging) return;
+  
+  // 让默认的复制行为继续
+  e.stopPropagation();
+}
+
+// 处理粘贴操作
+function handlePaste(e) {
+  // 如果正在拖动按钮，不处理粘贴
+  if (globals.isButtonDragging) return;
+  
+  // 让粘贴操作正常进行
+  e.stopPropagation();
 }
 
 function handleMouseDown(e) {
   if (!globals.isHighlighting || globals.isButtonDragging) return;  // 添加按钮拖动检查
   
   // 如果点击的是悬浮按钮或颜色选择器，不处理
-  if (globals.floatingButton.contains(e.target) || globals.colorPicker.contains(e.target)) {
+  if ((globals.floatingButton && globals.floatingButton.contains(e.target)) || 
+      (globals.colorPicker && globals.colorPicker.contains(e.target))) {
     return;
   }
   
@@ -370,30 +399,58 @@ function highlightBetweenPoints(start, end) {
     if (start.offset && end.offset && start.offset.node === end.offset.node) {
       const startOffset = Math.min(start.offset.offset, end.offset.offset);
       const endOffset = Math.max(start.offset.offset, end.offset.offset);
-      range.setStart(start.offset.node, startOffset);
-      range.setEnd(start.offset.node, endOffset);
+      
+      // 检查偏移量是否有效
+      if (startOffset >= 0 && endOffset <= start.offset.node.length) {
+        range.setStart(start.offset.node, startOffset);
+        range.setEnd(start.offset.node, endOffset);
+      } else {
+        console.log('无效的文本节点偏移量');
+        return;
+      }
     } else {
       // 使用元素位置来确定范围
       const startRange = document.caretRangeFromPoint(start.x, start.y);
       const endRange = document.caretRangeFromPoint(end.x, end.y);
       
       if (startRange && endRange) {
-        if (startRange.compareBoundaryPoints(Range.START_TO_START, endRange) <= 0) {
-          range.setStart(startRange.startContainer, startRange.startOffset);
-          range.setEnd(endRange.endContainer, endRange.endOffset);
-        } else {
-          range.setStart(endRange.startContainer, endRange.startOffset);
-          range.setEnd(startRange.endContainer, startRange.endOffset);
+        try {
+          // 检查范围是否有效
+          if (startRange.startContainer && endRange.endContainer) {
+            if (startRange.compareBoundaryPoints(Range.START_TO_START, endRange) <= 0) {
+              range.setStart(startRange.startContainer, startRange.startOffset);
+              range.setEnd(endRange.endContainer, endRange.endOffset);
+            } else {
+              range.setStart(endRange.startContainer, endRange.startOffset);
+              range.setEnd(startRange.endContainer, startRange.endOffset);
+            }
+          } else {
+            console.log('无效的范围容器');
+            return;
+          }
+        } catch (e) {
+          console.log('设置范围边界时出错:', e);
+          return;
         }
+      } else {
+        console.log('无法获取有效的范围');
+        return;
       }
     }
 
-    if (!range.collapsed) {
-      selection.addRange(range);
-      highlightSelection();
+    // 检查范围是否有效
+    if (!range.collapsed && range.startContainer && range.endContainer) {
+      try {
+        selection.addRange(range);
+        highlightSelection();
+      } catch (e) {
+        console.log('添加范围到选择时出错:', e);
+      }
+    } else {
+      console.log('无效的选择范围');
     }
   } catch (e) {
-    console.log('无法创建选择范围:', e);
+    console.log('创建选择范围时出错:', e);
   }
 }
 
@@ -405,32 +462,34 @@ function highlightSelection() {
   if (range.collapsed) return;
 
   try {
+    // 保存当前选择
+    const savedRange = range.cloneRange();
+    
+    // 创建高亮span
     const span = document.createElement('span');
     span.className = 'extension-highlight';
     span.style.backgroundColor = globals.currentColor;
-    // 移除 pointerEvents: 'none'，允许文本选择
     span.style.userSelect = 'text';
+    span.style.webkitUserSelect = 'text';
+    span.style.mozUserSelect = 'text';
+    span.style.msUserSelect = 'text';
 
     // 尝试直接高亮
-    range.surroundContents(span);
-  } catch (e) {
-    // 如果surroundContents失败，尝试分段高亮
     try {
+      range.surroundContents(span);
+    } catch (e) {
+      // 如果surroundContents失败，尝试分段高亮
       const contents = range.extractContents();
-      const span = document.createElement('span');
-      span.className = 'extension-highlight';
-      span.style.backgroundColor = globals.currentColor;
-      // 移除 pointerEvents: 'none'，允许文本选择
-      span.style.userSelect = 'text';
       span.appendChild(contents);
       range.insertNode(span);
-    } catch (err) {
-      console.log('无法高亮选中的文字:', err);
     }
-  }
 
-  // 清除选择
-  selection.removeAllRanges();
+    // 恢复选择
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+  } catch (err) {
+    console.log('无法高亮选中的文字:', err);
+  }
 }
 
 function clearHighlights() {

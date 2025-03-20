@@ -1,15 +1,49 @@
 .extension-highlight {
   border-radius: 2px;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  pointer-events: auto !important;
+  cursor: text !important;
 }
 
 /* 高亮模式下的链接样式 */
 .extension-active a {
   cursor: pointer !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  pointer-events: auto !important;
 }
 
 /* 拖动选择时的样式 */
 .extension-active.dragging a {
   cursor: text !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  pointer-events: auto !important;
+}
+
+/* 确保高亮模式下的文本可以被选择和复制 */
+.extension-active * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  pointer-events: auto !important;
+}
+
+/* 确保高亮文本可以被选择和复制 */
+.extension-highlight * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  pointer-events: auto !important;
 }
 
 /* 悬浮按钮样式 */
