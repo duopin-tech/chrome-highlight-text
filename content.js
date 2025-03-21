@@ -52,33 +52,54 @@ function createFloatingButton() {
   globals.floatingButton = document.createElement('button');
   globals.floatingButton.className = 'floating-button';
   globals.floatingButton.innerHTML = '✏️';
-  globals.floatingButton.title = '点击开启/关闭高亮功能，拖动可调整位置';
+  globals.floatingButton.title = '点击开启/关闭高亮功能，拖动可调整位置，鼠标右键点击切换标记颜色';
   document.body.appendChild(globals.floatingButton);
 
   // 创建颜色选择器容器
   globals.colorPicker = document.createElement('div');
   globals.colorPicker.className = 'highlight-color-picker';
+  
+  // 添加提示文本
+  const tooltip = document.createElement('div');
+  tooltip.className = 'color-picker-tooltip';
+  tooltip.textContent = '选择高亮颜色';
+  globals.colorPicker.appendChild(tooltip);
+  
+  // 创建颜色输入
   const colorInput = document.createElement('input');
   colorInput.type = 'color';
   colorInput.value = globals.currentColor;
+  colorInput.title = '点击选择高亮颜色';
+  
+  // 添加颜色变化事件
   colorInput.addEventListener('change', (e) => {
     globals.currentColor = e.target.value;
     chrome.storage.local.set({ highlightColor: globals.currentColor });
+    // 更新按钮颜色提示
+    globals.floatingButton.style.backgroundColor = globals.currentColor;
   });
+  
   globals.colorPicker.appendChild(colorInput);
   document.body.appendChild(globals.colorPicker);
 
   // 恢复按钮位置
-  chrome.storage.local.get(['buttonPosition'], (result) => {
+  chrome.storage.local.get(['buttonPosition', 'highlightColor'], (result) => {
     if (result.buttonPosition) {
       globals.floatingButton.style.top = result.buttonPosition.top;
       globals.floatingButton.style.right = result.buttonPosition.right;
     }
+    
+    // 恢复上次使用的颜色
+    if (result.highlightColor) {
+      globals.currentColor = result.highlightColor;
+      colorInput.value = globals.currentColor;
+      globals.floatingButton.style.backgroundColor = globals.currentColor;
+    }
   });
 
-  // 只添加按钮的mousedown事件监听器
+  // 添加按钮事件监听器
   globals.floatingButton.addEventListener('mousedown', startDragging);
-
+  
   // 点击切换高亮功能
   globals.floatingButton.addEventListener('click', (e) => {
     if (!globals.isDragging) {
@@ -90,15 +111,34 @@ function createFloatingButton() {
   globals.floatingButton.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // 计算颜色选择器位置
     const rect = globals.floatingButton.getBoundingClientRect();
-    globals.colorPicker.style.top = rect.bottom + 'px';
-    globals.colorPicker.style.left = rect.left + 'px';
+    const viewportWidth = window.innerWidth;
+    
+    // 根据按钮位置决定颜色选择器显示在左边还是右边
+    if (rect.right + 100 > viewportWidth) {
+      globals.colorPicker.style.right = 'auto';
+      globals.colorPicker.style.left = (rect.left - 60) + 'px';
+    } else {
+      globals.colorPicker.style.left = 'auto';
+      globals.colorPicker.style.right = (viewportWidth - rect.right + 20) + 'px';
+    }
+    
+    globals.colorPicker.style.top = rect.top + 'px';
     globals.colorPicker.classList.toggle('show');
   });
 
   // 点击页面其他地方时隐藏颜色选择器
   document.addEventListener('click', (e) => {
     if (!globals.colorPicker.contains(e.target) && !globals.floatingButton.contains(e.target)) {
+      globals.colorPicker.classList.remove('show');
+    }
+  });
+
+  // ESC 键关闭颜色选择器
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
       globals.colorPicker.classList.remove('show');
     }
   });
