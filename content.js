@@ -51,8 +51,8 @@ function createFloatingButton() {
   // 创建悬浮按钮
   globals.floatingButton = document.createElement('button');
   globals.floatingButton.className = 'floating-button';
-  globals.floatingButton.innerHTML = '✏️';
-  globals.floatingButton.title = '点击开启/关闭高亮功能，拖动可调整位置，鼠标右键点击切换标记颜色';
+  globals.floatingButton.innerHTML = '🖌️';  // 使用笔刷图标
+  globals.floatingButton.title = '左键点击：开启/关闭高亮功能\n右键点击：切换标记颜色\n按住拖动：调整按钮位置';
   document.body.appendChild(globals.floatingButton);
 
   // 创建颜色选择器容器
@@ -317,6 +317,18 @@ function handleMouseDown(e) {
     return;
   }
   
+  // 如果点击的是表单元素，让其正常工作
+  if (e.target.matches('input, textarea, select, [contenteditable="true"]')) {
+    return;
+  }
+  
+  // 如果点击的不是已高亮的文本，则取消当前的文本选择
+  const isHighlightedText = e.target.closest('.extension-highlight');
+  if (!isHighlightedText) {
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+  }
+  
   // 只响应左键
   if (e.button !== 0) return;
 
@@ -345,7 +357,12 @@ function handleMouseDown(e) {
 }
 
 function handleMouseMove(e) {
-  if (!globals.isHighlighting || globals.isButtonDragging || !globals.isMouseDown || !globals.startPoint) return;  // 添加按钮拖动检查
+  if (!globals.isHighlighting || globals.isButtonDragging || !globals.isMouseDown || !globals.startPoint) return;
+  
+  // 如果是表单元素，让其正常工作
+  if (e.target.matches('input, textarea, select, [contenteditable="true"]')) {
+    return;
+  }
   
   // 如果按住 Ctrl 键，不处理拖动
   if (e.ctrlKey) return;
@@ -379,7 +396,12 @@ function handleMouseMove(e) {
 }
 
 function handleMouseUp(e) {
-  if (!globals.isHighlighting || globals.isButtonDragging) return;  // 添加按钮拖动检查
+  if (!globals.isHighlighting || globals.isButtonDragging) return;
+  
+  // 如果是表单元素，让其正常工作
+  if (e.target.matches('input, textarea, select, [contenteditable="true"]')) {
+    return;
+  }
   
   // 如果按住 Ctrl 键，不处理高亮
   if (e.ctrlKey) {
@@ -400,6 +422,7 @@ function handleMouseUp(e) {
     };
     
     highlightBetweenPoints(globals.startPoint, endPoint);
+    
     // 只在非 Ctrl 键按下时阻止事件传播
     if (!e.ctrlKey) {
       e.preventDefault();
